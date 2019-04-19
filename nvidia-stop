@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+. /etc/default/nvidia-xrun
+function execute {
+  if [[ ${DRY_RUN} -eq 1 ]]
+    then
+    echo ">>Dry run. Command: $*"
+  else
+    eval $*
+  fi
+}
+
+for module in "${MODULES_UNLOAD[@]}"
+do
+        echo "Unloading module ${module}"
+        execute "sudo modprobe -r ${module}"
+done
+
+echo 'Removing Nvidia bus from the kernel'
+execute "sudo tee /sys/bus/pci/devices/${DEVICE_BUS_ID}/remove <<<1"
+
+echo 'Enabling powersave for the PCIe controller'
+execute "sudo tee /sys/bus/pci/devices/${CONTROLLER_BUS_ID}/power/control <<<auto"

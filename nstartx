@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+function execute {
+  eval $*
+}
+
+# load config file
+. /etc/default/nvidia-xrun
+
+# calculate current VT
+LVT=`fgconsole`
+
+# calculate first usable display
+XNUM="-1"
+SOCK="something"
+while [[ ! -z "$SOCK" ]]
+do
+  XNUM=$(( $XNUM + 1 ))
+  SOCK=$(ls -A -1 /tmp/.X11-unix | grep "X$XNUM" )
+done
+
+NEWDISP=":$XNUM"
+
+
+EXECL=$1
+
+COMMAND="xinit $EXECL -- $NEWDISP vt$LVT -nolisten tcp -br -config nvidia-xorg.conf -configdir nvidia-xorg.conf.d"
+
+echo $COMMAND
+execute $COMMAND

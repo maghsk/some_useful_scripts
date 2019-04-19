@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+. /etc/default/nvidia-xrun
+function execute {
+  if [[ ${DRY_RUN} -eq 1 ]]
+    then
+    echo ">>Dry run. Command: $*"
+  else
+    eval $*
+  fi
+}
+
+# --------- TURNING ON GPU -----------
+echo 'Turning the PCIe controller on to allow card rescan'
+execute "sudo tee /sys/bus/pci/devices/${CONTROLLER_BUS_ID}/power/control <<<on"
+
+echo 'Waiting 1 second'
+execute "sleep 1"
+
+if [[ ! -d /sys/bus/pci/devices/${DEVICE_BUS_ID} ]]; then
+	echo 'Rescanning PCI devices'
+	execute "sudo tee /sys/bus/pci/rescan <<<1"
+	echo "Waiting ${BUS_RESCAN_WAIT_SEC} second for rescan"
+	execute "sleep ${BUS_RESCAN_WAIT_SEC}"
+fi
+
+echo 'Turning the card on'
+execute "sudo tee /sys/bus/pci/devices/${DEVICE_BUS_ID}/power/control <<<on"
+
+# ---------- LOADING MODULES ----------
+for module in "${MODULES_LOAD[@]}"
+do
+   	echo "Loading module ${module}"
+	execute "sudo modprobe ${module}"
+done
+
